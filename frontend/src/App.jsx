@@ -41,9 +41,6 @@ export function AdminPage() {
     <div className='w-full my-4'>
     <GameAgenda/>
     </div>
-    <div className='w-full my-4'>
-    <CpuAgenda/>
-    </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <ButtonsAgenda/>
       <LanternAgenda/>
@@ -72,7 +69,7 @@ function YesNo({value}) {
 }
 
 function Card({className, children}) {
-  return <div className={`w-full rounded-lg bg-white p-3 shadow-md ${className}`}>
+  return <div className={`w-full rounded-lg md ${className}`}>
     {children}
   </div>;
 }
@@ -505,8 +502,11 @@ function ChainAgenda(){
   </Card>
 }
 
+
+
+/*
 export function ButtonsPage() {
-  const { data, error, isLoading } = useSWR(`/buttons/state`, fetcher, {
+  const { data, error, isLoading } = useSWR(`/chain/state`, fetcher, {
     refreshInterval: 500,
     dedupingInterval: 500
   });
@@ -515,9 +515,46 @@ export function ButtonsPage() {
     return <Spinner/>;
   if (error)
     return <Error error={error}/>
+
+  if (data.message){
+    <div className="bg-green-500"></div>
+  }
+
   return <div className='container mx-auto pt-28'>
-    <Card className="text-6xl font-bold p-28 text-center
-    ">{data.message ? data.message : "Zde není nic k vidění."}
+    <Card className="text-6xl font-bold p-28 text-center">
+      {data.message ? data.message : "ZAMČENO"}
     </Card></div>
 }
+*/
+function changeBackground(color) {
+  document.body.style.backgroundColor = color;
+}
 
+
+
+export function ButtonsPage() {
+  const { data, error, isLoading } = useSWR(`/chain/state`, fetcher, {
+    refreshInterval: 500,
+    dedupingInterval: 500
+  });
+
+  if (isLoading)
+    return <Spinner/>;
+  if (error)
+    return <Error error={error}/>
+
+  let className="text-9xl font-bold p-28 text-center"
+  
+  if (data.message) {
+    changeBackground('#16a34a');
+    className += " bg-red-green"
+  }
+  else {
+    changeBackground('#ef4444');
+    className += " bg-red-green"
+  }
+  return <div className='container mx-auto py-96'>
+    <Card className={className}> {data.message ? data.message : "ZAMČENO"}
+    </Card>
+  </div>
+}

@@ -118,15 +118,21 @@ class LanternGame(BaseModel):
         self.lanterns = {i: b for i, b in self.lanterns.items() if b.lastActive > threshold}
 
 
+
+class ChainGameSettings(BaseModel):
+    message: str = "ODEMČENO"
+
 class ChainGame(BaseModel):
     lastActive: float = 0 # timestamp
     active: bool = False
     lastValue: int = 0
     override: bool = False
 
-    def tick(self):
-        if time() - self.lastActive > 10:
-            self.active = False
+    settings: ChainGameSettings = ChainGameSettings()
+
+    #def tick(self):
+        #if time() - self.lastActive > 10:
+            #self.active = False
 
 class CpuSettings(BaseModel):
     dischargeRate: float = 0
@@ -264,13 +270,13 @@ def lanternDoors():
     roundTime = time() - BIG_GAME.roundStart
 
     sett = LANTERN_GAME.settings
-    CHAIN_GAME.tick()
+    #CHAIN_GAME.tick()
     print(CHAIN_GAME)
     return response(
-        CHAIN_GAME.active or CHAIN_GAME.override,
-        sett.window1start < roundTime < (sett.window1start + sett.window1duration),
-        sett.window2start < roundTime < (sett.window2start + sett.window2duration),
-        sett.window3start < roundTime < (sett.window3start + sett.window3duration))
+        BUTTONS_GAME.active or LASER_GAME.enabled,
+        BUTTONS_GAME.active or LASER_GAME.enabled,
+        BUTTONS_GAME.active or LASER_GAME.enabled,
+        BUTTONS_GAME.active or LASER_GAME.enabled)
 
 @app.get("/lanterns/settings")
 def lanternSettings():
@@ -303,7 +309,7 @@ def laserState():
     }
 
 # Chain ------------------------------------------------------------------------
-
+"""
 class ChainRegistration(BaseModel):
     enabled: bool
     lastValue: int
@@ -335,6 +341,55 @@ def chainOverrideOn():
 @app.post("/chain/overrideOff")
 def chainOverrideOff():
     CHAIN_GAME.override = False
+    return {}
+"""
+# New Chain --------------------------------------------------------------------
+
+class ChainRegistration(BaseModel):
+    enabled: bool
+    lastValue: int
+
+@app.post("/chain/register")
+def chainRegister(state: ChainRegistration):
+    CHAIN_GAME.active = state.enabled
+    CHAIN_GAME.lastValue = state.lastValue
+    CHAIN_GAME.lastActive = time()
+    print(CHAIN_GAME)
+    return {}
+
+
+@app.get("/chain/settings")
+def chainSettings():
+    return CHAIN_GAME.settings
+
+@app.post("/chain/settings")
+def chainSettings(settings: ChainGameSettings):
+    CHAIN_GAME.settings = settings
+    return CHAIN_GAME.settings
+
+
+@app.get("/chain/state")
+def chainState():
+    #CHAIN_GAME.tick()
+    return {
+        "time": time(),
+        "lastActive": CHAIN_GAME.lastActive,
+        "active": CHAIN_GAME.active,
+        "override": CHAIN_GAME.override,
+        "lastValue": CHAIN_GAME.lastValue,
+        "message": CHAIN_GAME.settings.message if CHAIN_GAME.active else None
+    }
+
+@app.post("/chain/overrideOn")
+def chainOverrideOn():
+    CHAIN_GAME.override = True
+    CHAIN_GAME.active = True
+    return {}
+
+@app.post("/chain/overrideOff")
+def chainOverrideOff():
+    CHAIN_GAME.override = False
+    CHAIN_GAME.active = False
     return {}
 
 

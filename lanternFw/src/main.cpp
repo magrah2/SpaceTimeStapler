@@ -11,7 +11,7 @@ using namespace std::literals;
 
 static const int BRIGHTNESS = 50;
 static const int SHUTDOWN_SECS = 5;
-static const std::string SERVER = SERVERNAME;
+static const std::string SERVER = "http://192.168.0.167:8000";
 
 static const Rgb RED( 255, 0, 0 );
 static const Rgb GREEN( 0, 255, 0 );
@@ -132,7 +132,7 @@ extern "C" void app_main() {
             return true;
         }
     );
-    connector.connect( SSID, PASS );
+    connector.connect( "CHOICE-2GHz", "karelpecepernikzavunenecaje" );
 
     std::thread shutdownThread( shutdownRoutine );
 
@@ -156,14 +156,16 @@ extern "C" void app_main() {
 
     while (true) {
         if ( !hasId ) {
-            auto idJson = getJson( SERVER + "/lanterns/register" );
-            if ( idJson ) {
-                cJSON *node = cJSON_GetObjectItem( idJson.get(), "id" );
-                if ( node ) {
-                    id = node->valueint;
-                    hasId = true;
-                }
-            }
+            hasId = true;
+            id = 1;
+            // auto idJson = getJson( SERVER + "/lanterns/register" );
+            // if ( idJson ) {
+            //     cJSON *node = cJSON_GetObjectItem( idJson.get(), "id" );
+            //     if ( node ) {
+            //         id = node->valueint;
+            //         hasId = true;
+            //     }
+            // }
         }
 
         if ( hasId ) {
@@ -171,7 +173,7 @@ extern "C" void app_main() {
                 "{\"battery\": "s + std::to_string(man.power().batteryPercentage( true )) + "}" );
         }
 
-        auto doorJson = getJson(SERVER + "/lanterns/doors");
+        auto doorJson = getJson(SERVER + "/lanterns/doors/" + std::to_string(id));
         if ( doorJson ) {
             cJSON *node = cJSON_GetObjectItem( doorJson.get(), "restarting" );
             if ( node && node->valueint )
