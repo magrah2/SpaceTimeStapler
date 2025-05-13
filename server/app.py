@@ -13,43 +13,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class ButtonState(BaseModel):
+class ButtonStateA(BaseModel):
     lastPress: float = 0 # timestamp
     lastActive: float = 0 # timestamp
 
-class ButtonsGameSettings(BaseModel):
+class ButtonsGameSettingsA(BaseModel):
     pressTolerance: float = 5 # seconds
     activityTolerance: float = 10 # seconds
     revealDuration: float = 30 # seconds
-    message: str = "Vložte tajnou zprávu"
+    messageFire: str = "Byl vypálen neutronový svazek!"
+    messageHit: str = "Byli jsme zasaženi neutronovým svazkem!"
 
-class ButtonsGame(BaseModel):
-    buttons: Dict[int, ButtonState] = {}
+class ButtonsGameA(BaseModel):
+    buttons: Dict[int, ButtonStateA] = {}
     _buttonIdCounter: int = PrivateAttr(default=0)
 
-    hideAt: float = 0 # timestamp
+    active: bool = False
+    pressed: bool = False
+    #fired: bool = False
+    #hideAt: float = 0
+    settings: ButtonsGameSettingsA = ButtonsGameSettingsA()
 
-    settings: ButtonsGameSettings = ButtonsGameSettings()
 
-
-    @property
-    def active(self) -> None:
-        return self.hideAt > time()
+    #@property
+    #def active(self) -> None:
+    #    return self.hideAt > time()
 
     def onButtonPress(self, id: int) -> None:
         timestamp = time()
 
-        self.buttons.setdefault(id, ButtonState()).lastPress = timestamp
+        self.buttons.setdefault(id, ButtonStateA()).lastPress = timestamp
 
         self.purgeButtons(timestamp)
         press = [x.lastPress for x in self.buttons.values()]
         if max(press) - min(press) < self.settings.pressTolerance:
-            self.hideAt = timestamp + self.settings.revealDuration
+            self.pressed = True
+            #self.hideAt = timestamp + self.settings.revealDuration
 
     def onButtonActivity(self, id: int) -> None:
         timestamp = time()
 
-        self.buttons.setdefault(id, ButtonState()).lastActive = timestamp
+        self.buttons.setdefault(id, ButtonStateA()).lastActive = timestamp
         self.purgeButtons(timestamp)
 
     def getNewButtonId(self) -> int:
@@ -59,6 +63,60 @@ class ButtonsGame(BaseModel):
     def purgeButtons(self, timestamp: float) -> None:
         threshold = timestamp - self.settings.activityTolerance
         self.buttons = {i: b for i, b in self.buttons.items() if b.lastActive > threshold}
+
+
+class ButtonStateB(BaseModel):
+    lastPress: float = 0 # timestamp
+    lastActive: float = 0 # timestamp
+
+class ButtonsGameSettingsB(BaseModel):
+    pressTolerance: float = 5 # seconds
+    activityTolerance: float = 10 # seconds
+    revealDuration: float = 30 # seconds
+    messageFire: str = "Byl vypálen neutronový svazek!"
+    messageHit: str = "Byli jsme zasaženi neutronovým svazkem!"
+
+class ButtonsGameB(BaseModel):
+    buttons: Dict[int, ButtonStateB] = {}
+    _buttonIdCounter: int = PrivateAttr(default=0)
+
+    active: bool = False
+    pressed: bool = False
+    #fired: bool = False
+    #hideAt: float = 0
+
+    settings: ButtonsGameSettingsB = ButtonsGameSettingsB()
+
+
+    #@property
+    #def active(self) -> None:
+    #    return self.hideAt > time()
+
+    def onButtonPress(self, id: int) -> None:
+        timestamp = time()
+
+        self.buttons.setdefault(id, ButtonStateB()).lastPress = timestamp
+
+        self.purgeButtons(timestamp)
+        press = [x.lastPress for x in self.buttons.values()]
+        if max(press) - min(press) < self.settings.pressTolerance:
+            self.pressed = True
+            #self.hideAt = timestamp + self.settings.revealDuration
+
+    def onButtonActivity(self, id: int) -> None:
+        timestamp = time()
+
+        self.buttons.setdefault(id, ButtonStateB()).lastActive = timestamp
+        self.purgeButtons(timestamp)
+
+    def getNewButtonId(self) -> int:
+        self._buttonIdCounter += 1
+        return self._buttonIdCounter
+
+    def purgeButtons(self, timestamp: float) -> None:
+        threshold = timestamp - self.settings.activityTolerance
+        self.buttons = {i: b for i, b in self.buttons.items() if b.lastActive > threshold}
+
 
 class BigGame(BaseModel):
     roundStart: float = 0 # timestamp
@@ -145,7 +203,8 @@ class CpuGame(BaseModel):
     settings: CpuSettings = CpuSettings()
 
 
-BUTTONS_GAME = ButtonsGame()
+BUTTONS_GAMEA = ButtonsGameA()
+BUTTONS_GAMEB = ButtonsGameB()
 BIG_GAME = BigGame()
 LASER_GAME = LaserGame()
 LANTERN_GAME = LanternGame()
@@ -153,48 +212,126 @@ CHAIN_GAME = ChainGame()
 CPU_GAME = CpuGame()
 
 
-# Buttons ----------------------------------------------------------------------
+# Buttons A ----------------------------------------------------------------------
 
-@app.get("/buttons/register")
-def buttonRegister():
+@app.get("/buttonsA/register")
+def buttonRegisterA():
     return {
-        "id": BUTTONS_GAME.getNewButtonId()
+        "id": BUTTONS_GAMEA.getNewButtonId()
     }
 
-@app.post("/buttons/{id}/register")
-def buttonRegister(id: int):
-    BUTTONS_GAME.onButtonActivity(id)
+@app.post("/buttonsA/{id}/register")
+def buttonRegisterA(id: int):
+    BUTTONS_GAMEA.onButtonActivity(id)
     return {}
 
-@app.post("/buttons/{id}/press")
-def buttonPress(id: int):
-    BUTTONS_GAME.onButtonPress(id)
+@app.post("/buttonsA/{id}/press")
+def buttonPressA(id: int):
+    BUTTONS_GAMEA.onButtonPress(id)
     return {}
 
-@app.get("/buttons/settings")
-def buttonSettings():
-    return BUTTONS_GAME.settings
+@app.get("/buttonsA/settings")
+def buttonSettingsA():
+    return BUTTONS_GAMEA.settings
 
-@app.post("/buttons/settings")
-def buttonSettings(settings: ButtonsGameSettings):
-    BUTTONS_GAME.settings = settings
-    return BUTTONS_GAME.settings
+@app.post("/buttonsA/settings")
+def buttonSettingsA(settings: ButtonsGameSettingsA):
+    BUTTONS_GAMEA.settings = settings
+    return BUTTONS_GAMEA.settings
 
-@app.get("/buttons/decision")
-def buttonDecision():
+@app.get("/buttonsA/decision")
+def buttonDecisionA():
     return {
-        "revealed": BUTTONS_GAME.active,
-        "pressTolerance": BUTTONS_GAME.settings.pressTolerance
+        "revealed": BUTTONS_GAMEA.active,
+        "pressTolerance": BUTTONS_GAMEA.settings.pressTolerance
     }
 
-@app.get("/buttons/state")
-def buttonState():
+@app.get("/buttonsA/state")
+def buttonStateA():
+    if not BUTTONS_GAMEB.active:
+        if BUTTONS_GAMEA.pressed:
+            BUTTONS_GAMEA.active = True
+
     return {
-        "revealed": BUTTONS_GAME.active,
-        "message": BUTTONS_GAME.settings.message if BUTTONS_GAME.active else None,
-        "buttons": BUTTONS_GAME.buttons,
+        "pressed": BUTTONS_GAMEA.pressed,
+        "active": BUTTONS_GAMEA.active,
+        "messageFire": BUTTONS_GAMEA.settings.messageFire if BUTTONS_GAMEA.active else None,
+        "messageHit": BUTTONS_GAMEA.settings.messageHit if BUTTONS_GAMEA.active else None,
+        "buttons": BUTTONS_GAMEA.buttons,
         "time": time()
     }
+
+@app.post("/buttonsA/overrideOn")
+def buttonOverrideOnA():
+    BUTTONS_GAMEA.active = True
+    return {}
+
+@app.post("/buttonsA/overrideOff")
+def buttonOverrideOffA():
+    BUTTONS_GAMEA.active = False
+    BUTTONS_GAMEA.pressed = False
+    return {}
+
+# Buttons B ----------------------------------------------------------------------
+
+@app.get("/buttonsB/register")
+def buttonRegisterB():
+    return {
+        "id": BUTTONS_GAMEB.getNewButtonId()
+    }
+
+@app.post("/buttonsB/{id}/register")
+def buttonRegisterB(id: int):
+    BUTTONS_GAMEB.onButtonActivity(id)
+    return {}
+
+@app.post("/buttonsB/{id}/press")
+def buttonPressB(id: int):
+    BUTTONS_GAMEB.onButtonPress(id)
+    return {}
+
+@app.get("/buttonsB/settings")
+def buttonSettingsB():
+    return BUTTONS_GAMEB.settings
+
+@app.post("/buttonsB/settings")
+def buttonSettingsB(settings: ButtonsGameSettingsB):
+    BUTTONS_GAMEB.settings = settings
+    return BUTTONS_GAMEB.settings
+
+@app.get("/buttonsB/decision")
+def buttonDecisionB():
+    return {
+        "revealed": BUTTONS_GAMEB.active,
+        "pressTolerance": BUTTONS_GAMEB.settings.pressTolerance
+    }
+
+@app.get("/buttonsB/state")
+def buttonStateB():
+    if not BUTTONS_GAMEA.active:
+        if BUTTONS_GAMEB.pressed:
+            BUTTONS_GAMEB.active = True
+
+    return {
+        "pressed": BUTTONS_GAMEB.pressed,
+        "active": BUTTONS_GAMEB.active,
+        "messageFire": BUTTONS_GAMEB.settings.messageFire if BUTTONS_GAMEB.active else None,
+        "messageHit": BUTTONS_GAMEB.settings.messageHit if BUTTONS_GAMEB.active else None,
+        "buttons": BUTTONS_GAMEB.buttons,
+        "time": time()
+    }
+
+@app.post("/buttonsB/overrideOn")
+def buttonOverrideOnB():
+    BUTTONS_GAMEB.active = True
+    return {}
+
+@app.post("/buttonsB/overrideOff")
+def buttonOverrideOffB():
+    BUTTONS_GAMEB.active = False
+    BUTTONS_GAMEB.pressed = False
+    return {}
+
 
 # Big game ---------------------------------------------------------------------
 

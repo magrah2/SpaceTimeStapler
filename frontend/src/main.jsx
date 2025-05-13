@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import {AdminPage, ButtonsPage} from './App'
+import {AdminPage, ButtonsPageA, ButtonsPageB, ChatPage} from './App'
 
 import {
   createBrowserRouter,
@@ -15,8 +15,16 @@ const router = createBrowserRouter([
     element: <AdminPage/>,
   },
   {
-    path: "/",
-    element: <ButtonsPage/>,
+    path: "/shipA",
+    element: <ButtonsPageA/>,
+  },
+  {
+    path: "/shipB",
+    element: <ButtonsPageB/>,
+  },
+  {
+    path: "/chat",
+    element: <ChatPage/>,
   },
 ]);
 

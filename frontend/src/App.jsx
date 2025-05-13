@@ -35,20 +35,32 @@ function formatTime(time) {
   return minutes+':'+seconds;
 }
 
+export function ChatPage() {
+  const[textG, setTextG] = useState('');
+  const[textV, setTextV] = useState('');
+  
+
+  return <div className="container mx-auto p-5">
+    <h1>Chat pro počítače</h1>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card>
+        <h2>Glum</h2>
+        <textarea value={textG} onChange={(e) => setTextG(e.target.value)} rows={10} style={{width: '100%', fontSize: '16px', padding: '12px', resize: 'vertical', color: 'black', backgroundColor: 'white'}}></textarea>
+      </Card>
+      <Card>
+        <h2>Vojta</h2>
+        <textarea value={textV} onChange={(e) => setTextV(e.target.value)} rows={10} style={{width: '100%', fontSize: '16px', padding: '12px', resize: 'vertical', color: 'black', backgroundColor: 'white'}}></textarea>
+      </Card>
+    </div>
+  </div>;
+}
+
 export function AdminPage() {
   return <div className="container mx-auto p-5">
-    <h1>Časoprostorová sešívačka</h1>
-    <div className='w-full my-4'>
-    <GameAgenda/>
-    </div>
-    <div className='w-full my-4'>
-    <CpuAgenda/>
-    </div>
+    <h1>Raketa</h1>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <ButtonsAgenda/>
-      <LanternAgenda/>
-      <LaserAgenda/>
-      <ChainAgenda/>
+      <ButtonsAgendaA/>
+      <ButtonsAgendaB/>
     </div>
   </div>;
 }
@@ -220,12 +232,20 @@ function CpuAgenda() {
     );
 }
 
-function ButtonsAgenda(){
+function ButtonsAgendaA(){
   return <Card>
-    <ButtonsSettings/>
+    <ButtonsSettingsA/>
     <hr className='my-3'/>
-    <h2>Tlačítka</h2>
-    <ButtonsOverview/>
+    <h2>Tlačítka A</h2>
+    <ButtonsOverviewA/>
+  </Card>
+}
+function ButtonsAgendaB(){
+  return <Card>
+    <ButtonsSettingsB/>
+    <hr className='my-4'/>
+    <h2>Tlačítka B</h2>
+    <ButtonsOverviewB/>
   </Card>
 }
 
@@ -236,13 +256,13 @@ const Input = React.forwardRef(({dirty, className, ...props}, ref) => {
   return <input ref={ref} className={`${cls} ${className}`} {...props}/>
 })
 
-function ButtonsSettings() {
+function ButtonsSettingsA() {
   const [lastData, setLastData] = useState();
   const [disabled, setDisabled] = useState(false);
   const [stateMessage, setStateMessage] = useState();
   const { register, handleSubmit, reset, formState: { errors, isDirty, dirtyFields } } = useForm();
 
-  const { data, error, isLoading, mutate } = useSWR(`/buttons/settings`, fetcher, {
+  const { data, error, isLoading, mutate } = useSWR(`/buttonsA/settings`, fetcher, {
     refreshInterval: 100,
     onSuccess: data => {
       // Meth, hacky
@@ -257,7 +277,7 @@ function ButtonsSettings() {
   const onSubmit = data => {
     setDisabled(true);
     setStateMessage("Odesílám");
-    postData("/buttons/settings", data).finally( () => {
+    postData("/buttonsA/settings", data).finally( () => {
       setStateMessage("Uloženo!");
       setTimeout(() => setStateMessage(undefined), 2000);
       setDisabled(false);
@@ -268,12 +288,15 @@ function ButtonsSettings() {
   const fields = {
     pressTolerance: "Tolerance stisku",
     activityTolerance: "Timeout pro keep-alive",
-    revealDuration: "Doba zobrazení",
-    message: "Tajná zpráva"
+    /*revealDuration: "Doba zobrazení",*/
+    messageFire: "Zpráva při výstřelu",
+    messageHit: "Zpráva při zásahu"
   };
 
+
+  
   return <div>
-    <h2>Nastavení tlačítek</h2>
+    <h2>Nastavení tlačítek A</h2>
     <form onSubmit={handleSubmit(onSubmit)}>
       {
         Object.keys(fields).map(name => {
@@ -282,7 +305,7 @@ function ButtonsSettings() {
             <label>{fields[name]}</label>
           </div>
           <div className='w-2/3'>
-          <Input className={"w-full"}  {...register(name)} dirty={dirtyFields[name] && false} type={name == "message" ? "text" : "number"}/>
+          <Input className={"w-full"}  {...register(name)} dirty={dirtyFields[name] && false} type={(name == "messageFire" || name == "messageHit") ? "text" : "number"}/>
           </div>
         </div>
         })
@@ -294,8 +317,69 @@ function ButtonsSettings() {
   </div>
 }
 
-function ButtonsOverview() {
-  const { data, error, isLoading } = useSWR(`/buttons/state`, fetcher, {
+function ButtonsSettingsB() {
+  const [lastData, setLastData] = useState();
+  const [disabled, setDisabled] = useState(false);
+  const [stateMessage, setStateMessage] = useState();
+  const { register, handleSubmit, reset, formState: { errors, isDirty, dirtyFields } } = useForm();
+
+  const { data, error, isLoading, mutate } = useSWR(`/buttonsB/settings`, fetcher, {
+    refreshInterval: 100,
+    onSuccess: data => {
+      // Meth, hacky
+      if (JSON.stringify(data) == JSON.stringify(lastData))
+        return
+      setLastData(data);
+      reset(data, {keepDefaultValues: true});
+    }
+  });
+
+
+  const onSubmit = data => {
+    setDisabled(true);
+    setStateMessage("Odesílám");
+    postData("/buttonsB/settings", data).finally( () => {
+      setStateMessage("Uloženo!");
+      setTimeout(() => setStateMessage(undefined), 2000);
+      setDisabled(false);
+      mutate();
+    });
+  }
+
+  const fields = {
+    pressTolerance: "Tolerance stisku",
+    activityTolerance: "Timeout pro keep-alive",
+    /*revealDuration: "Doba zobrazení",*/
+    messageFire: "Zpráva při výstřelu",
+    messageHit: "Zpráva při zásahu"
+  };
+
+
+  
+  return <div>
+    <h2>Nastavení tlačítek B</h2>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {
+        Object.keys(fields).map(name => {
+          return <div key={name} className='row flex items-center my-1'>
+          <div className='w-1/3 text-right px-4'>
+            <label>{fields[name]}</label>
+          </div>
+          <div className='w-2/3'>
+          <Input className={"w-full"}  {...register(name)} dirty={dirtyFields[name] && false} type={(name == "messageFire" || name == "messageHit") ? "text" : "number"}/>
+          </div>
+        </div>
+        })
+      }
+      <input disabled={disabled} type={"submit"} className="w-full bg-purple-500 disabled:bg-gray-500 rounded-lg my-2 p-2 border-none shadow-sm" value={
+        stateMessage ? stateMessage : "Uložit"
+      }/>
+    </form>
+  </div>
+}
+
+function ButtonsOverviewA() {
+  const { data, error, isLoading } = useSWR(`/buttonsA/state`, fetcher, {
     refreshInterval: 500,
     dedupingInterval: 500
   });
@@ -307,9 +391,13 @@ function ButtonsOverview() {
   return <div><table className='w-full'>
     <tbody>
     <tr>
-      <td className='font-bold w-1/3 text-right px-4'>Odhaleno:</td>
-      <td><YesNo value={data.revealed}/></td>
+      <td className='font-bold w-1/3 text-right px-4'>Zmáčknuto:</td>
+      <td><YesNo value={data.pressed}/></td>
       <td/>
+    </tr>
+    <tr>
+      <td className='font-bold w-1/3 text-right px-4'>Vystřeleno:</td>
+      <td><YesNo value={data.active}/></td>
     </tr>
     <tr>
       <td className="font-bold text-right px-4">Aktivní tlačítka:</td>
@@ -332,6 +420,58 @@ function ButtonsOverview() {
     }
     </tbody>
   </table>
+    <button className='w-full py-1 my-1 bg-yellow-500' onClick={() => postData("/buttonsA/overrideOn").then(mutate)}>Vynutit aktivaci</button>
+    <button className='w-full py-1 my-1 bg-yellow-500' onClick={() => postData("/buttonsA/overrideOff").then(mutate)}>Zrušit aktivaci</button>
+  </div>
+}
+
+
+
+
+function ButtonsOverviewB() {
+  const { data, error, isLoading } = useSWR(`/buttonsB/state`, fetcher, {
+    refreshInterval: 500,
+    dedupingInterval: 500
+  });
+
+  if (isLoading)
+    return <Spinner/>;
+  if (error)
+    return <Error error={error}/>
+  return <div><table className='w-full'>
+    <tbody>
+    <tr>
+      <td className='font-bold w-1/3 text-right px-4'>Zmáčknuto:</td>
+      <td><YesNo value={data.pressed}/></td>
+      <td/>
+    </tr>
+    <tr>
+      <td className='font-bold w-1/3 text-right px-4'>Vystřeleno:</td>
+      <td><YesNo value={data.active}/></td>
+    </tr>
+    <tr>
+      <td className="font-bold text-right px-4">Aktivní tlačítka:</td>
+      <td>{Object.keys(data.buttons).length}</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Aktivní před</td>
+      <td>Stisknuto před</td>
+    </tr>
+    {
+      Object.keys(data.buttons).map(id => {
+        let button = data.buttons[id];
+        return <tr key={id}>
+          <td className="font-bold w-1/3 text-right px-4">{id}:</td>
+          <td>{(data.time - button.lastActive).toFixed(1)} s</td>
+          <td>{ button.lastPress == 0 ? "Nebylo stisknuto" : `${(data.time - button.lastPress).toFixed(1)}s`}</td>
+        </tr>
+      })
+    }
+    </tbody>
+  </table>
+    <button className='w-full py-1 my-1 bg-yellow-500' onClick={() => postData("/buttonsB/overrideOn").then(mutate)}>Vynutit aktivaci</button>
+    <button className='w-full py-1 my-1 bg-yellow-500' onClick={() => postData("/buttonsB/overrideOff").then(mutate)}>Zrušit aktivaci</button>
   </div>
 }
 
@@ -505,7 +645,7 @@ function ChainAgenda(){
   </Card>
 }
 
-export function ButtonsPage() {
+/*export function ButtonsPage() {
   const { data, error, isLoading } = useSWR(`/buttons/state`, fetcher, {
     refreshInterval: 500,
     dedupingInterval: 500
@@ -519,5 +659,117 @@ export function ButtonsPage() {
     <Card className="text-6xl font-bold p-28 text-center
     ">{data.message ? data.message : "Zde není nic k vidění."}
     </Card></div>
+}*/
+
+function changeBackground(color) {
+  document.body.style.backgroundColor = color;
 }
 
+function useMessageA() {
+  const { data, error, isLoading } = useSWR(`/buttonsA/state`, fetcher, {
+    refreshInterval: 500,
+    dedupingInterval: 500
+  });
+  return {
+    dataA: data,
+    errorA: error,
+    isLoadingA: isLoading
+  }
+}
+
+function useMessageB() {
+  const { data, error, isLoading } = useSWR(`/buttonsB/state`, fetcher, {
+    refreshInterval: 500,
+    dedupingInterval: 500
+  });
+  return {
+    dataB: data,
+    errorB: error,
+    isLoadingB: isLoading
+  }
+}
+
+export function ButtonsPageA() {
+  const { dataA, errorA, isLoadingA} = useMessageA()
+
+  const { dataB, errorB, isLoadingB} = useMessageB()
+  
+
+  if (isLoadingA)
+    return <Spinner/>;
+  if (isLoadingB)
+    return <Spinner/>;
+  if (errorA)
+    return <Error error={errorA}/>
+  if (errorB)
+    return <Error error={errorB}/>
+
+  let className="text-9xl font-bold p-28 text-center"
+  
+  if (dataB.messageFire) {
+    changeBackground('#ef4444');
+    className += " bg-red-green"
+    return <div className='container mx-auto py-96'>
+      <div className={className}> {dataB.messageHit}
+    </div>
+  </div>
+  }
+  else if (dataA.messageFire) {
+    changeBackground('#fca503');
+    className += " bg-red-green"
+    return <div className='container mx-auto py-96'>
+      <div className={className}> {dataA.messageFire}
+    </div>
+  </div>
+  }
+  else {
+    changeBackground('#16a34a');
+    className += " bg-red-green"
+  }
+  return <div className='container mx-auto py-96'>
+    <div className={className}> {"Zbraně jsou aktivní"}
+    </div>
+  </div>
+}
+
+export function ButtonsPageB() {
+  const { dataA, errorA, isLoadingA} = useMessageA()
+
+  const { dataB, errorB, isLoadingB} = useMessageB()
+  
+  if (isLoadingA)
+    return <Spinner/>;
+  if (isLoadingB)
+    return <Spinner/>;
+  if (errorA)
+    return <Error error={errorA}/>
+  if (errorB)
+    return <Error error={errorB}/>
+
+  let className="text-9xl font-bold p-28 text-center"
+  
+  if (dataA.messageFire) {
+    changeBackground('#ef4444');
+    className += " bg-red-green"
+    return <div className='container mx-auto py-96'>
+      <div className={className}> {dataA.messageHit}
+    </div>
+  </div>
+  }
+  else if (dataB.messageFire) {
+    changeBackground('#fca503');
+    className += " bg-red-green"
+    return <div className='container mx-auto py-96'>
+      <div className={className}> {dataB.messageFire}
+    </div>
+  </div>
+  }
+  else {
+    changeBackground('#16a34a');
+    className += " bg-red-green"
+  }
+  return <div className='container mx-auto py-96'>
+    <div className={className}> {"Zbraně jsou aktivní"}
+    </div>
+  </div>
+}
